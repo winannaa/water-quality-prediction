@@ -94,7 +94,6 @@ if menu == "Data & Info":
         panelB["label"].value_counts().plot(kind="bar", ax=ax)
         st.pyplot(fig)
 
-
 # =========================================================
 # 2. HALAMAN MODEL & EVALUASI
 # =========================================================
