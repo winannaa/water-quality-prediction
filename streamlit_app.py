@@ -9,7 +9,7 @@ import os
 import requests
 
 # =========================================================
-# GOOGLE DRIVE FILE IDs (sudah diisi dari link kamu)
+# GOOGLE DRIVE FILE IDs
 # =========================================================
 FILE_ID_PANEL_A = "1fZCYvQ8JDaJmuy2E1IcdU7ijfsGp4mbz"
 FILE_ID_PANEL_B = "1CdtMOSwjHd8OLfrbJy1AxVRajB51OcvQ"
@@ -18,7 +18,7 @@ URL_A = f"https://drive.google.com/uc?id={FILE_ID_PANEL_A}"
 URL_B = f"https://drive.google.com/uc?id={FILE_ID_PANEL_B}"
 
 # =========================================================
-# LOAD DATA FROM GOOGLE DRIVE (AUTO DOWNLOAD)
+# LOAD DATA FROM GOOGLE DRIVE
 # =========================================================
 @st.cache_data
 def load_data():
@@ -28,10 +28,8 @@ def load_data():
     path_A = "tmp_data/panelA_clean.csv"
     path_B = "tmp_data/panelB_clean.csv"
 
-    # Download dataset jika belum ada
     if not os.path.exists(path_A):
         gdown.download(URL_A, path_A, quiet=False)
-
     if not os.path.exists(path_B):
         gdown.download(URL_B, path_B, quiet=False)
 
@@ -62,10 +60,13 @@ modelA, modelB, scalerA, scalerB, leA, leB = load_models()
 st.set_page_config(page_title="Kualitas Air IoT", layout="wide")
 st.title("💧 Prediksi & Rekomendasi Kualitas Air Berbasis IoT")
 
-menu = st.sidebar.radio("Navigasi", ["Data & Info", "Model & Evaluasi", "Prediksi + Rekomendasi AI"])
+menu = st.sidebar.radio(
+    "Navigasi", 
+    ["Data & Info", "Model & Evaluasi", "Prediksi + Rekomendasi AI"]
+)
 
 # =========================================================
-# LOAD DATA (once)
+# LOAD DATA
 # =========================================================
 panelA, panelB = load_data()
 
@@ -77,7 +78,6 @@ if menu == "Data & Info":
 
     tab1, tab2 = st.tabs(["Panel A", "Panel B"])
 
-    # ==== PANEL A ====
     with tab1:
         st.subheader("Contoh Data Panel A")
         st.dataframe(panelA.head())
@@ -87,15 +87,15 @@ if menu == "Data & Info":
         panelA["label"].value_counts().plot(kind="bar", ax=ax)
         st.pyplot(fig)
 
-    # ==== PANEL B ====
     with tab2:
-        st.subheader("Contoh Data Panel A")
+        st.subheader("Contoh Data Panel B")
         st.dataframe(panelB.head())
 
         st.subheader("Distribusi Label Panel B")
         fig, ax = plt.subplots()
-        panelA["label"].value_counts().plot(kind="bar", ax=ax)
+        panelB["label"].value_counts().plot(kind="bar", ax=ax)
         st.pyplot(fig)
+
 # =========================================================
 # 2. HALAMAN MODEL & EVALUASI
 # =========================================================
@@ -104,49 +104,50 @@ elif menu == "Model & Evaluasi":
 
     st.info("""
     Akurasi dan confusion matrix berasal dari hasil training.
-    File dataset besar tetap berada di Google Drive, tetapi model .pkl digunakan di Streamlit.
+    File dataset bersifat besar sehingga disimpan di Google Drive.
     """)
 
-    # Confusion Matrix Panel A
     if os.path.exists("evaluation/cmA.csv"):
         cmA = pd.read_csv("evaluation/cmA.csv", index_col=0)
         st.subheader("Confusion Matrix Panel A")
         fig, ax = plt.subplots()
         sns.heatmap(cmA, annot=True, cmap="Blues", fmt="d")
         st.pyplot(fig)
-    else:
-        st.warning("Confusion matrix Panel A tidak tersedia.")
 
-    # Confusion Matrix Panel B
     if os.path.exists("evaluation/cmB.csv"):
         cmB = pd.read_csv("evaluation/cmB.csv", index_col=0)
         st.subheader("Confusion Matrix Panel B")
         fig, ax = plt.subplots()
         sns.heatmap(cmB, annot=True, cmap="Blues", fmt="d")
         st.pyplot(fig)
-    else:
-        st.warning("Confusion matrix Panel B tidak tersedia.")
 
 # =========================================================
 # 3. HALAMAN PREDIKSI + REKOMENDASI AI
 # =========================================================
 elif menu == "Prediksi + Rekomendasi AI":
+
     st.header("🧪 Prediksi Kualitas Air")
 
-    # =========================================================
-# 3. HALAMAN PREDIKSI + REKOMENDASI AI (Versi Tanpa Flow)
-# =========================================================
-elif menu == "Prediksi + Rekomendasi AI":
-    st.header("🧪 Prediksi Kualitas Air")
+    st.markdown("### Masukkan nilai sensor")
 
-    turbidity = st.number_input("Turbidity (NTU)")
-    tds = st.number_input("TDS (ppm)")
-    ph = st.number_input("pH", min_value=0.0, max_value=14.0)
+    col1, col2 = st.columns(2)
 
-    panel_choice = st.selectbox("Pilih Panel", ["Panel A", "Panel B"])
+    with col1:
+        turbidity = st.number_input("Turbidity (NTU)", min_value=0.0, value=0.0)
 
-    if st.button("Predict"):
-        # Urutan fitur sesuai model → [Turbidity, pH, TDS]
+    with col2:
+        tds = st.number_input("TDS (ppm)", min_value=0.0, value=0.0)
+
+    ph = st.number_input("pH", min_value=0.0, max_value=14.0, value=7.0)
+
+    st.write("")
+    panel_choice = st.selectbox("Pilih Panel Model", ["Panel A", "Panel B"])
+
+    st.write("")
+    predict_btn = st.button("🔮 Prediksi Sekarang", use_container_width=True)
+
+    if predict_btn:
+
         input_data = np.array([[turbidity, ph, tds]])
 
         # PILIH MODEL
@@ -159,9 +160,18 @@ elif menu == "Prediksi + Rekomendasi AI":
             pred = modelB.predict(Xs)[0]
             label = leB.inverse_transform([pred])[0]
 
-        st.success(f"Prediksi Kualitas Air: **{label}**")
+        # HASIL PREDIKSI
+        st.markdown(
+            f"""
+            <div style="padding:15px; border-radius:10px; background:#eef6ff; border:1px solid #c8defc;">
+                <h3 style="color:#0b63c7;">Hasil Prediksi</h3>
+                <p style="font-size:22px;"><b>{label}</b></p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        # ============ AI RECOMMENDATION (Gemini) ============
+        # ============ AI RECOMMENDATION ============
         API_KEY = st.secrets["GEMINI_KEY"]
 
         prompt = f"""
@@ -173,60 +183,43 @@ elif menu == "Prediksi + Rekomendasi AI":
         Prediksi label: {label}
 
         Berikan:
-        1. Analisis kondisi air berdasarkan label
-        2. Rekomendasi treatment untuk meningkatkan kualitas air
+        1. Analisis kondisi air berdasarkan kategori label tersebut
+        2. Rekomendasi teknis untuk meningkatkan kualitas air
+        3. Penjelasan yang mudah dipahami
         """
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
-        
-        data = { "contents": [{ "parts": [{ "text": prompt }] }] }
-        
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"gemini-1.5-flash-latest:generateContent?key={API_KEY}"
+        )
+
+        data = {"contents": [{"parts": [{"text": prompt}]}]}
+
         response = requests.post(url, json=data)
         result = response.json()
 
         ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
 
-        st.subheader("🔍 Rekomendasi dari Gemini AI")
-        st.write(ai_text)
+        # OUTPUT AI CANTIK
+        st.markdown(
+            """
+            <h3 style="margin-top:25px;">🔍 Rekomendasi dari Gemini AI</h3>
+            """,
+            unsafe_allow_html=True
+        )
 
-
-        # PILIH MODEL
-        if panel_choice == "Panel A":
-            Xs = scalerA.transform(input_data)
-            pred = modelA.predict(Xs)[0]
-            label = leA.inverse_transform([pred])[0]
-        else:
-            Xs = scalerB.transform(input_data)
-            pred = modelB.predict(Xs)[0]
-            label = leB.inverse_transform([pred])[0]
-
-        st.success(f"Prediksi Kualitas Air: **{label}**")
-
-        # ============ AI RECOMMENDATION (Gemini) ============
-        API_KEY = st.secrets["GEMINI_KEY"]
-
-        prompt = f"""
-        Nilai sensor:
-        - Flow1: {flow1}
-        - Turbidity: {turbidity}
-        - TDS: {tds}
-        - pH: {ph}
-
-        Prediksi label: {label}
-
-        Berikan:
-        1. Analisis kondisi air berdasarkan label
-        2. Rekomendasi treatment untuk meningkatkan kualitas air
-        """
-
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
-        
-        data = { "contents": [{ "parts": [{ "text": prompt }] }] }
-        
-        response = requests.post(url, json=data)
-        result = response.json()
-
-        ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
-
-        st.subheader("🔍 Rekomendasi dari Gemini AI")
-        st.write(ai_text)
+        st.markdown(
+            f"""
+            <div style="
+                background:#f9f9f9; 
+                padding:20px; 
+                border-radius:10px; 
+                border-left:5px solid #0b63c7;
+                font-size:16px;
+                line-height:1.6;
+            ">
+                {ai_text}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
