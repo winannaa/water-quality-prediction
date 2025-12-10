@@ -176,7 +176,7 @@ elif menu == "Prediksi + Rekomendasi AI":
             unsafe_allow_html=True
         )
 
-        # ============ AI RECOMMENDATION (Gemini) ============
+        # ============ AI RECOMMENDATION (SAFE HANDLING) ============
         API_KEY = st.secrets["GEMINI_KEY"]
 
         prompt = f"""
@@ -190,8 +190,8 @@ elif menu == "Prediksi + Rekomendasi AI":
 
         Berikan:
         1. Analisis kualitas air berdasarkan label
-        2. Rekomendasi teknis untuk perbaikan
-        3. Saran yang mudah dipahami untuk orang awam
+        2. Rekomendasi teknis
+        3. Penjelasan yang mudah dipahami
         """
 
         url = (
@@ -204,9 +204,17 @@ elif menu == "Prediksi + Rekomendasi AI":
         response = requests.post(url, json=data)
         result = response.json()
 
-        ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
+        # CEK ERROR DULU
+        if "candidates" not in result:
+            st.error("❌ Gemini API Error:")
 
-        # OUTPUT AI — UI CANTIK
+        if "error" in result:
+            st.error(result["error"]["message"])
+        else:
+            st.error("No candidates returned from Gemini API.")
+        else:
+            ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
+
         st.markdown(
             "<h3 style='margin-top:25px;'>🔍 Rekomendasi dari Gemini AI</h3>",
             unsafe_allow_html=True
