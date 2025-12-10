@@ -9,6 +9,12 @@ import os
 import requests
 
 # =========================================================
+# STREAMLIT CONFIG
+# =========================================================
+st.set_page_config(page_title="Kualitas Air IoT", layout="wide")
+st.title("💧 Prediksi & Rekomendasi Kualitas Air Berbasis IoT")
+
+# =========================================================
 # GOOGLE DRIVE FILE IDs
 # =========================================================
 FILE_ID_PANEL_A = "1fZCYvQ8JDaJmuy2E1IcdU7ijfsGp4mbz"
@@ -37,8 +43,9 @@ def load_data():
     panelB = pd.read_csv(path_B)
     return panelA, panelB
 
+
 # =========================================================
-# LOAD MODEL, SCALER, LABEL ENCODER
+# LOAD MODELS (MODEL, SCALER, LABEL ENCODER)
 # =========================================================
 @st.cache_resource
 def load_models():
@@ -50,28 +57,24 @@ def load_models():
 
     leA = pickle.load(open("models/labelA.pkl", "rb"))
     leB = pickle.load(open("models/labelB.pkl", "rb"))
+
     return modelA, modelB, scalerA, scalerB, leA, leB
+
 
 modelA, modelB, scalerA, scalerB, leA, leB = load_models()
 
-# =========================================================
-# STREAMLIT CONFIG
-# =========================================================
-st.set_page_config(page_title="Kualitas Air IoT", layout="wide")
-st.title("💧 Prediksi & Rekomendasi Kualitas Air Berbasis IoT")
+panelA, panelB = load_data()
 
+# =========================================================
+# SIDEBAR MENU
+# =========================================================
 menu = st.sidebar.radio(
     "Navigasi", 
     ["Data & Info", "Model & Evaluasi", "Prediksi + Rekomendasi AI"]
 )
 
 # =========================================================
-# LOAD DATA
-# =========================================================
-panelA, panelB = load_data()
-
-# =========================================================
-# 1. HALAMAN DATA
+# 1. DATA PAGE
 # =========================================================
 if menu == "Data & Info":
     st.header("📊 Dataset Sensor IoT dari Google Drive")
@@ -97,7 +100,7 @@ if menu == "Data & Info":
         st.pyplot(fig)
 
 # =========================================================
-# 2. HALAMAN MODEL & EVALUASI
+# 2. MODEL & EVALUATION PAGE
 # =========================================================
 elif menu == "Model & Evaluasi":
     st.header("🤖 Evaluasi Model Machine Learning")
@@ -117,16 +120,17 @@ elif menu == "Model & Evaluasi":
         st.pyplot(fig)
 
 # =========================================================
-# 3. HALAMAN PREDIKSI + REKOMENDASI AI
+# 3. PREDIKSI + REKOMENDASI AI PAGE
 # =========================================================
 elif menu == "Prediksi + Rekomendasi AI":
-
     st.header("🧪 Prediksi Kualitas Air")
+
+    st.markdown("### Masukkan nilai sensor (4 fitur)")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        flow1 = st.number_input("Flow 1 (L/min)", min_value=0.0, value=1.0)
+        flow1 = st.number_input("Flow 1 (L/min)", min_value=0.0, value=0.0)
         turbidity = st.number_input("Turbidity (NTU)", min_value=0.0, value=0.0)
 
     with col2:
@@ -140,10 +144,10 @@ elif menu == "Prediksi + Rekomendasi AI":
     predict_btn = st.button("🔮 Prediksi Sekarang", use_container_width=True)
 
     if predict_btn:
-
+        # Prepare input
         input_data = np.array([[flow1, turbidity, ph, tds]])
 
-        # PILIH MODEL
+        # Predict
         if panel_choice == "Panel A":
             Xs = scalerA.transform(input_data)
             pred = modelA.predict(Xs)[0]
@@ -153,7 +157,7 @@ elif menu == "Prediksi + Rekomendasi AI":
             pred = modelB.predict(Xs)[0]
             label = leB.inverse_transform([pred])[0]
 
-        # HASIL PREDIKSI — UI CANTIK
+        # OUTPUT PREDIKSI
         st.markdown(
             f"""
             <div style="padding:15px; border-radius:10px; background:#eef6ff; border:1px solid #c8defc;">
@@ -164,11 +168,13 @@ elif menu == "Prediksi + Rekomendasi AI":
             unsafe_allow_html=True
         )
 
-        # ============ AI RECOMMENDATION (Gemini-Pro) ============
+        # =========================================================
+        # GEMINI PRO — FIXED AND SAFE
+        # =========================================================
         API_KEY = st.secrets["GEMINI_KEY"]
 
         prompt = f"""
-        Data sensor:
+        Data sensor air:
         - Flow1: {flow1}
         - Turbidity: {turbidity}
         - TDS: {tds}
@@ -176,30 +182,41 @@ elif menu == "Prediksi + Rekomendasi AI":
 
         Prediksi kualitas air: {label}
 
-        Jelaskan:
-        1. Interpretasi kondisi air berdasarkan prediksi.
-        2. Resiko jika kualitas air tidak ditangani.
-        3. Rekomendasi teknis untuk perbaikan kualitas.
+        Berikan:
+        1. Analisis kualitas air
+        2. Risiko jika tidak ditangani
+        3. Rekomendasi perbaikan kualitas air
         """
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={API_KEY}"
 
-        data = {"contents": [{"parts": [{"text": prompt}]}]}
+        payload = {
+            "contents": [
+                {"parts": [{"text": prompt}]}
+            ]
+        }
 
-        response = requests.post(url, json=data)
+        response = requests.post(url, json=payload)
         result = response.json()
 
-        # SAFE CHECK untuk error response
+        # Debug (muncul di logs Cloud)
+        print("DEBUG GEMINI:", result)
+
         if "candidates" in result:
             ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
         else:
-            ai_text = "AI tidak bisa memberikan rekomendasi saat ini."
+            ai_text = f"""
+            ❌ AI gagal memberikan rekomendasi.
 
-        # OUTPUT AI — UI CANTIK
-        st.markdown(
+            **Detail respons API:**
+            ```
+            {result}
+            ```
             """
-            <h3 style="margin-top:25px;">🔍 Rekomendasi dari Gemini AI</h3>
-            """,
+
+        # OUTPUT
+        st.markdown(
+            "<h3 style='margin-top:25px;'>🔍 Rekomendasi dari Gemini AI</h3>",
             unsafe_allow_html=True
         )
 
