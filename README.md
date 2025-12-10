@@ -1,13 +1,13 @@
-# 📦 Streamlit App Starter Kit 
+# 💧 Water Quality Prediction App
 ```
-⬆️ (Replace above with your app's name)
+Ini adalah Aplikasi untuk memprediksi kualitas air. 
 ```
 
 Description of the app ...
 
 ## Demo App
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://app-starter-kit.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://water-quality-prediction.streamlit.app/)
 
 ## GitHub Codespaces
 
