@@ -122,7 +122,7 @@ elif menu == "Model & Evaluasi":
         st.pyplot(fig)
 
 # =========================================================
-# 3. HALAMAN PREDIKSI + REKOMENDASI AI
+# 3. HALAMAN PREDIKSI + REKOMENDASI AI (Final + No Error)
 # =========================================================
 elif menu == "Prediksi + Rekomendasi AI":
 
@@ -133,12 +133,12 @@ elif menu == "Prediksi + Rekomendasi AI":
     col1, col2 = st.columns(2)
 
     with col1:
+        flow1 = st.number_input("Flow 1", min_value=0.0, value=0.0)
         turbidity = st.number_input("Turbidity (NTU)", min_value=0.0, value=0.0)
 
     with col2:
         tds = st.number_input("TDS (ppm)", min_value=0.0, value=0.0)
-
-    ph = st.number_input("pH", min_value=0.0, max_value=14.0, value=7.0)
+        ph = st.number_input("pH", min_value=0.0, max_value=14.0, value=7.0)
 
     st.write("")
     panel_choice = st.selectbox("Pilih Panel Model", ["Panel A", "Panel B"])
@@ -148,9 +148,9 @@ elif menu == "Prediksi + Rekomendasi AI":
 
     if predict_btn:
 
-        input_data = np.array([[turbidity, ph, tds]])
+        # WAJIB: Input urut sesuai training
+        input_data = np.array([[flow1, turbidity, ph, tds]])
 
-        # PILIH MODEL
         if panel_choice == "Panel A":
             Xs = scalerA.transform(input_data)
             pred = modelA.predict(Xs)[0]
@@ -160,22 +160,28 @@ elif menu == "Prediksi + Rekomendasi AI":
             pred = modelB.predict(Xs)[0]
             label = leB.inverse_transform([pred])[0]
 
-        # HASIL PREDIKSI
+        # HASIL PREDIKSI (UI cantik)
         st.markdown(
             f"""
-            <div style="padding:15px; border-radius:10px; background:#eef6ff; border:1px solid #c8defc;">
-                <h3 style="color:#0b63c7;">Hasil Prediksi</h3>
-                <p style="font-size:22px;"><b>{label}</b></p>
+            <div style="
+                padding:18px; 
+                border-radius:10px; 
+                background:#eef6ff; 
+                border:1px solid #c8defc;
+                margin-top:10px;">
+                <h3 style="color:#0b63c7; margin-bottom:5px;">Hasil Prediksi</h3>
+                <p style="font-size:24px; font-weight:bold;">{label}</p>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # ============ AI RECOMMENDATION ============
+        # ============ AI RECOMMENDATION (Gemini) ============
         API_KEY = st.secrets["GEMINI_KEY"]
 
         prompt = f"""
         Nilai sensor:
+        - Flow1: {flow1}
         - Turbidity: {turbidity}
         - TDS: {tds}
         - pH: {ph}
@@ -183,9 +189,9 @@ elif menu == "Prediksi + Rekomendasi AI":
         Prediksi label: {label}
 
         Berikan:
-        1. Analisis kondisi air berdasarkan kategori label tersebut
-        2. Rekomendasi teknis untuk meningkatkan kualitas air
-        3. Penjelasan yang mudah dipahami
+        1. Analisis kualitas air berdasarkan label
+        2. Rekomendasi teknis untuk perbaikan
+        3. Saran yang mudah dipahami untuk orang awam
         """
 
         url = (
@@ -200,23 +206,22 @@ elif menu == "Prediksi + Rekomendasi AI":
 
         ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
 
-        # OUTPUT AI CANTIK
+        # OUTPUT AI — UI CANTIK
         st.markdown(
-            """
-            <h3 style="margin-top:25px;">🔍 Rekomendasi dari Gemini AI</h3>
-            """,
+            "<h3 style='margin-top:25px;'>🔍 Rekomendasi dari Gemini AI</h3>",
             unsafe_allow_html=True
         )
 
         st.markdown(
             f"""
             <div style="
-                background:#f9f9f9; 
+                background:#ffffff; 
                 padding:20px; 
-                border-radius:10px; 
+                border-radius:12px; 
                 border-left:5px solid #0b63c7;
                 font-size:16px;
                 line-height:1.6;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             ">
                 {ai_text}
             </div>
