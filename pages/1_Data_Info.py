@@ -1,28 +1,25 @@
 import streamlit as st
-import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from utils import load_panelA, load_panelB
 
 st.title("📊 Data & Info")
 
-# Load dataset
-panelA = pd.read_csv("data/panelA_clean.csv")
-panelB = pd.read_csv("data/panelB_clean.csv")
+panelA = load_panelA()
+panelB = load_panelB()
 
-st.subheader("🔹 Panel A — Sample Data")
-st.dataframe(panelA.head())
+st.subheader("Dataset Panel A (Raw Cleaned)")
+st.write(panelA.head())
+st.write(panelA.describe())
 
-st.subheader("🔹 Panel B — Sample Data")
-st.dataframe(panelB.head())
+st.subheader("Dataset Panel B (Raw Cleaned)")
+st.write(panelB.head())
+st.write(panelB.describe())
 
-# Label distribution
-st.subheader("📌 Distribusi Label (Panel A)")
-fig1, ax1 = plt.subplots()
-panelA['label'].value_counts().plot(kind='bar', ax=ax1)
-st.pyplot(fig1)
-
-st.subheader("📌 Distribusi Label (Panel B)")
-fig2, ax2 = plt.subplots()
-panelB['label'].value_counts().plot(kind='bar', ax=ax2)
-st.pyplot(fig2)
-
+# Distribusi label
+fig, ax = plt.subplots(1, 2, figsize=(14,5))
+sns.countplot(x=panelA["label"], ax=ax[0])
+sns.countplot(x=panelB["label"], ax=ax[1])
+ax[0].set_title("Distribusi Label - Panel A")
+ax[1].set_title("Distribusi Label - Panel B")
+st.pyplot(fig)
