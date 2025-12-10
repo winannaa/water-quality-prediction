@@ -89,11 +89,13 @@ if menu == "Data & Info":
 
     # ==== PANEL B ====
     with tab2:
+        st.subheader("Contoh Data Panel A")
+        st.dataframe(panelB.head())
+
         st.subheader("Distribusi Label Panel B")
         fig, ax = plt.subplots()
-        panelB["label"].value_counts().plot(kind="bar", ax=ax)
+        panelA["label"].value_counts().plot(kind="bar", ax=ax)
         st.pyplot(fig)
-
 # =========================================================
 # 2. HALAMAN MODEL & EVALUASI
 # =========================================================
