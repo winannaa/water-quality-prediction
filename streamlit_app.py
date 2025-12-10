@@ -133,15 +133,62 @@ elif menu == "Model & Evaluasi":
 elif menu == "Prediksi + Rekomendasi AI":
     st.header("🧪 Prediksi Kualitas Air")
 
-    flow1 = st.number_input("Flow 1")
-    turbidity = st.number_input("Turbidity")
-    tds = st.number_input("TDS")
+    # =========================================================
+# 3. HALAMAN PREDIKSI + REKOMENDASI AI (Versi Tanpa Flow)
+# =========================================================
+elif menu == "Prediksi + Rekomendasi AI":
+    st.header("🧪 Prediksi Kualitas Air")
+
+    turbidity = st.number_input("Turbidity (NTU)")
+    tds = st.number_input("TDS (ppm)")
     ph = st.number_input("pH", min_value=0.0, max_value=14.0)
 
     panel_choice = st.selectbox("Pilih Panel", ["Panel A", "Panel B"])
 
     if st.button("Predict"):
-        input_data = np.array([[flow1, turbidity, ph, tds]])
+        # Urutan fitur sesuai model → [Turbidity, pH, TDS]
+        input_data = np.array([[turbidity, ph, tds]])
+
+        # PILIH MODEL
+        if panel_choice == "Panel A":
+            Xs = scalerA.transform(input_data)
+            pred = modelA.predict(Xs)[0]
+            label = leA.inverse_transform([pred])[0]
+        else:
+            Xs = scalerB.transform(input_data)
+            pred = modelB.predict(Xs)[0]
+            label = leB.inverse_transform([pred])[0]
+
+        st.success(f"Prediksi Kualitas Air: **{label}**")
+
+        # ============ AI RECOMMENDATION (Gemini) ============
+        API_KEY = st.secrets["GEMINI_KEY"]
+
+        prompt = f"""
+        Nilai sensor:
+        - Turbidity: {turbidity}
+        - TDS: {tds}
+        - pH: {ph}
+
+        Prediksi label: {label}
+
+        Berikan:
+        1. Analisis kondisi air berdasarkan label
+        2. Rekomendasi treatment untuk meningkatkan kualitas air
+        """
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
+        
+        data = { "contents": [{ "parts": [{ "text": prompt }] }] }
+        
+        response = requests.post(url, json=data)
+        result = response.json()
+
+        ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
+
+        st.subheader("🔍 Rekomendasi dari Gemini AI")
+        st.write(ai_text)
+
 
         # PILIH MODEL
         if panel_choice == "Panel A":
