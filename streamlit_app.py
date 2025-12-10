@@ -65,9 +65,6 @@ menu = st.sidebar.radio(
     ["Data & Info", "Model & Evaluasi", "Prediksi + Rekomendasi AI"]
 )
 
-# =========================================================
-# LOAD DATA
-# =========================================================
 panelA, panelB = load_data()
 
 # =========================================================
@@ -100,11 +97,11 @@ if menu == "Data & Info":
 # 2. HALAMAN MODEL & EVALUASI
 # =========================================================
 elif menu == "Model & Evaluasi":
-    st.header("🤖 Evaluasi Model Machine Learning")
+    st.header("🤖 Evaluasi Model")
 
     st.info("""
-    Akurasi dan confusion matrix berasal dari hasil training.
-    File dataset bersifat besar sehingga disimpan di Google Drive.
+    Model dilatih menggunakan 4 fitur: flow1, turbidity, ph, tds.
+    Dataset besar disimpan di Google Drive.
     """)
 
     if os.path.exists("evaluation/cmA.csv"):
@@ -122,7 +119,7 @@ elif menu == "Model & Evaluasi":
         st.pyplot(fig)
 
 # =========================================================
-# 3. HALAMAN PREDIKSI + REKOMENDASI AI (Final + No Error)
+# 3. HALAMAN PREDIKSI + REKOMENDASI AI
 # =========================================================
 elif menu == "Prediksi + Rekomendasi AI":
 
@@ -140,15 +137,11 @@ elif menu == "Prediksi + Rekomendasi AI":
         tds = st.number_input("TDS (ppm)", min_value=0.0, value=0.0)
         ph = st.number_input("pH", min_value=0.0, max_value=14.0, value=7.0)
 
-    st.write("")
     panel_choice = st.selectbox("Pilih Panel Model", ["Panel A", "Panel B"])
 
-    st.write("")
-    predict_btn = st.button("🔮 Prediksi Sekarang", use_container_width=True)
+    if st.button("🔮 Prediksi Sekarang", use_container_width=True):
 
-    if predict_btn:
-
-        # WAJIB: Input urut sesuai training
+        # Urutan fitur sesuai training
         input_data = np.array([[flow1, turbidity, ph, tds]])
 
         if panel_choice == "Panel A":
@@ -160,7 +153,7 @@ elif menu == "Prediksi + Rekomendasi AI":
             pred = modelB.predict(Xs)[0]
             label = leB.inverse_transform([pred])[0]
 
-        # HASIL PREDIKSI (UI cantik)
+        # UI hasil prediksi
         st.markdown(
             f"""
             <div style="
@@ -189,9 +182,9 @@ elif menu == "Prediksi + Rekomendasi AI":
         Prediksi label: {label}
 
         Berikan:
-        1. Analisis kualitas air berdasarkan label
-        2. Rekomendasi teknis
-        3. Penjelasan yang mudah dipahami
+        1. Analisis kualitas air
+        2. Rekomendasi teknis perbaikan
+        3. Penjelasan sederhana untuk user
         """
 
         url = (
@@ -204,35 +197,33 @@ elif menu == "Prediksi + Rekomendasi AI":
         response = requests.post(url, json=data)
         result = response.json()
 
-        # CEK ERROR DULU
         if "candidates" not in result:
             st.error("❌ Gemini API Error:")
-
-        if "error" in result:
-            st.error(result["error"]["message"])
-        else:
-            st.error("No candidates returned from Gemini API.")
+            if "error" in result:
+                st.error(result["error"]["message"])
+            else:
+                st.error("No response candidates returned.")
         else:
             ai_text = result["candidates"][0]["content"]["parts"][0]["text"]
 
-        st.markdown(
-            "<h3 style='margin-top:25px;'>🔍 Rekomendasi dari Gemini AI</h3>",
-            unsafe_allow_html=True
-        )
+            st.markdown(
+                "<h3 style='margin-top:25px;'>🔍 Rekomendasi dari Gemini AI</h3>",
+                unsafe_allow_html=True
+            )
 
-        st.markdown(
-            f"""
-            <div style="
-                background:#ffffff; 
-                padding:20px; 
-                border-radius:12px; 
-                border-left:5px solid #0b63c7;
-                font-size:16px;
-                line-height:1.6;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            ">
-                {ai_text}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            st.markdown(
+                f"""
+                <div style="
+                    background:#ffffff; 
+                    padding:20px; 
+                    border-radius:12px; 
+                    border-left:5px solid #0b63c7;
+                    font-size:16px;
+                    line-height:1.6;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                ">
+                    {ai_text}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
