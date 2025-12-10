@@ -1,0 +1,25 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore virtual env
+venv/
+env/
+
+# Ignore dataset
+data/
+tmp_data/
+
+# Ignore model checkpoints besar
+*.h5
+*.ckpt
+
+# Ignore notebooks checkpoint
+.ipynb_checkpoints/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore secrets
+.secrets.toml
