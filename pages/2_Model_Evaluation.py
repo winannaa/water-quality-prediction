@@ -1,48 +1,45 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
+import pickle
 import seaborn as sns
-import joblib
+import matplotlib.pyplot as plt
+from utils import load_panelA, load_panelB
+
+st.title("📈 Model & Evaluasi")
+
+# Load models
+def load_model(path):
+    with open(path, "rb") as f:
+        return pickle.load(f)
+
+models = {
+    "XGBoost Panel A": "models/xgb_panelA.pkl",
+    "LogReg Panel A": "models/logreg_panelA.pkl",
+    "XGBoost Panel B": "models/xgb_panelB.pkl",
+    "LogReg Panel B": "models/logreg_panelB.pkl"
+}
+
+selected = st.selectbox("Pilih Model:", list(models.keys()))
+model = load_model(models[selected])
+
+panel = load_panelA() if "Panel A" in selected else load_panelB()
+
+X = panel[['flow1','turbidity','ph','tds']]
+y = panel['label']
+
+# Predict for evaluation
+y_pred = model.predict(X)
+
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
-st.title("🤖 Model & Evaluation")
+acc = accuracy_score(y, y_pred)
+st.write(f"### Accuracy: **{acc:.4f}**")
 
-# Load model
-xgb_A = joblib.load("models/xgb_A.pkl")
-xgb_B = joblib.load("models/xgb_B.pkl")
+# Classification report
+st.text(classification_report(y, y_pred))
 
-logreg_A = joblib.load("models/logreg_A.pkl")
-logreg_B = joblib.load("models/logreg_B.pkl")
-
-st.write("Berikut adalah hasil evaluasi model Anda:")
-
-def show_metrics(name, model, X, y):
-    st.subheader(name)
-    pred = model.predict(X)
-    acc = accuracy_score(y, pred)
-    st.write(f"**Accuracy: {acc:.4f}**")
-
-    report = classification_report(y, pred, output_dict=True)
-    st.dataframe(report)
-
-    cm = confusion_matrix(y, pred)
-    fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt="d", ax=ax, cmap="Blues")
-    st.pyplot(fig)
-
-# Load data
-panelA = pd.read_csv("data/panelA_clean.csv")
-panelB = pd.read_csv("data/panelB_clean.csv")
-
-X_A = panelA[['flow1','turbidity','ph','tds']]
-y_A = panelA['label']
-
-X_B = panelB[['flow1','turbidity','ph','tds']]
-y_B = panelB['label']
-
-# Show evaluation
-show_metrics("XGBoost – Panel A", xgb_A, X_A, y_A)
-show_metrics("Logistic Regression – Panel A", logreg_A, X_A, y_A)
-show_metrics("XGBoost – Panel B", xgb_B, X_B, y_B)
-show_metrics("Logistic Regression – Panel B", logreg_B, X_B, y_B)
-
+# Confusion matrix plot
+cm = confusion_matrix(y, y_pred)
+fig, ax = plt.subplots(figsize=(6,5))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.title(f"Confusion Matrix - {selected}")
+st.pyplot(fig)
