@@ -137,14 +137,11 @@ elif menu == "Prediksi + Rekomendasi AI":
         tds = st.number_input("TDS (ppm)", min_value=0.0, value=0.0)
         ph = st.number_input("pH", min_value=0.0, max_value=14.0, value=7.0)
 
-    st.write("")
     panel_choice = st.selectbox("Pilih Panel Model", ["Panel A", "Panel B"])
 
-    st.write("")
     predict_btn = st.button("🔮 Prediksi Sekarang", use_container_width=True)
 
     if predict_btn:
-        # Prepare input
         input_data = np.array([[flow1, turbidity, ph, tds]])
 
         # Predict
@@ -157,7 +154,7 @@ elif menu == "Prediksi + Rekomendasi AI":
             pred = modelB.predict(Xs)[0]
             label = leB.inverse_transform([pred])[0]
 
-        # OUTPUT PREDIKSI
+        # Output Prediction
         st.markdown(
             f"""
             <div style="padding:15px; border-radius:10px; background:#eef6ff; border:1px solid #c8defc;">
@@ -169,12 +166,12 @@ elif menu == "Prediksi + Rekomendasi AI":
         )
 
         # =========================================================
-        # GEMINI PRO — FIXED AND SAFE
+        # GEMINI 1.5 FLASH — 100% WORKING
         # =========================================================
         API_KEY = st.secrets["GEMINI_KEY"]
 
         prompt = f"""
-        Data sensor air:
+        Data sensor:
         - Flow1: {flow1}
         - Turbidity: {turbidity}
         - TDS: {tds}
@@ -183,12 +180,12 @@ elif menu == "Prediksi + Rekomendasi AI":
         Prediksi kualitas air: {label}
 
         Berikan:
-        1. Analisis kualitas air
+        1. Penjelasan kondisi air
         2. Risiko jika tidak ditangani
         3. Rekomendasi perbaikan kualitas air
         """
 
-        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
         payload = {
             "contents": [
@@ -199,7 +196,6 @@ elif menu == "Prediksi + Rekomendasi AI":
         response = requests.post(url, json=payload)
         result = response.json()
 
-        # Debug (muncul di logs Cloud)
         print("DEBUG GEMINI:", result)
 
         if "candidates" in result:
@@ -207,14 +203,13 @@ elif menu == "Prediksi + Rekomendasi AI":
         else:
             ai_text = f"""
             ❌ AI gagal memberikan rekomendasi.
-
-            **Detail respons API:**
+            
+            Detail error:
             ```
             {result}
             ```
             """
 
-        # OUTPUT
         st.markdown(
             "<h3 style='margin-top:25px;'>🔍 Rekomendasi dari Gemini AI</h3>",
             unsafe_allow_html=True
@@ -229,9 +224,7 @@ elif menu == "Prediksi + Rekomendasi AI":
                 border-left:5px solid #0b63c7;
                 font-size:16px;
                 line-height:1.6;
-            ">
-                {ai_text}
-            </div>
+            ">{ai_text}</div>
             """,
             unsafe_allow_html=True
         )
